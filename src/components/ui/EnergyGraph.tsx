@@ -16,9 +16,9 @@ export function EnergyGraph() {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.2 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(90vw,600px)] z-10"
+      className="fixed bottom-4 left-4 w-[min(400px,45vw)] z-10 pointer-events-none"
     >
-      <div className="backdrop-blur-xl bg-black/40 border border-cyan-500/30 rounded-xl shadow-2xl shadow-cyan-500/10 p-4 font-mono">
+      <div className="backdrop-blur-xl bg-black/40 border border-cyan-500/30 rounded-xl shadow-2xl shadow-cyan-500/10 p-4 font-mono pointer-events-auto">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-1.5 h-1.5 rounded-full bg-neon-amber" />
           <span className="text-slate-400 text-xs uppercase tracking-wider">Energy Accumulation</span>

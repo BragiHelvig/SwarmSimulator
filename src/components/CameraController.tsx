@@ -9,11 +9,11 @@ const SCALE = 2
 export function CameraController() {
   const { camera } = useThree()
   const { state } = useSimulation()
-  const { cameraMode, selectedNodeId, nodes, timeScale, nodeOverrides } = state
+  const { cameraMode, selectedNodeId, nodes, timeScale, nodeOverrides, paused } = state
   const timeRef = useRef(0)
 
   useFrame((_, delta) => {
-    timeRef.current += delta
+    if (!paused) timeRef.current += delta
 
     if (cameraMode === 'node-eye' && selectedNodeId != null && nodes.length > 0 && selectedNodeId < nodes.length) {
       const node = nodes[selectedNodeId]

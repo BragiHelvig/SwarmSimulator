@@ -9,11 +9,11 @@ export function CameraModeToggle() {
     <motion.div
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-4 right-4 z-10 flex gap-2"
+      className="fixed top-4 right-4 z-10 flex gap-2 pointer-events-none"
     >
       <button
         onClick={() => dispatch({ type: 'SET_CAMERA_MODE', payload: 'free' })}
-        className={`px-4 py-2 rounded-lg font-mono text-sm transition-all backdrop-blur-xl ${
+        className={`px-4 py-2 rounded-lg font-mono text-sm transition-all backdrop-blur-xl pointer-events-auto ${
           cameraMode === 'free'
             ? 'bg-neon-cyan/30 text-neon-cyan border border-neon-cyan/50'
             : 'bg-black/40 text-slate-400 border border-white/10 hover:border-cyan-500/30'
@@ -24,7 +24,7 @@ export function CameraModeToggle() {
       <button
         onClick={() => selectedNodeId != null && dispatch({ type: 'SET_CAMERA_MODE', payload: 'node-eye' })}
         disabled={selectedNodeId == null}
-        className={`px-4 py-2 rounded-lg font-mono text-sm transition-all backdrop-blur-xl ${
+        className={`px-4 py-2 rounded-lg font-mono text-sm transition-all backdrop-blur-xl pointer-events-auto ${
           cameraMode === 'node-eye'
             ? 'bg-neon-amber/30 text-neon-amber border border-neon-amber/50'
             : selectedNodeId == null

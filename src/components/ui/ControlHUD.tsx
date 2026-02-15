@@ -35,6 +35,10 @@ export function ControlHUD() {
     nodeOverrides,
     commandLog,
     simTime,
+    paused,
+    energyStored,
+    deploymentMode,
+    deployedCount,
   } = state
 
   const selectedNode = selectedNodeId != null && nodes[selectedNodeId] ? nodes[selectedNodeId] : null
@@ -73,7 +77,10 @@ export function ControlHUD() {
         <div className="backdrop-blur-xl bg-black/50 border border-cyan-500/30 rounded-lg shadow-2xl shadow-cyan-500/5 p-4 font-mono text-sm">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-cyan-500/20">
             <span className="text-cyan-400 text-xs uppercase tracking-widest">Fleet Overview</span>
-            <span className="text-slate-500 text-xs">SIM {formatTime(simTime)}</span>
+            <span className="text-slate-500 text-xs flex items-center gap-2">
+              SIM {formatTime(simTime)}
+              {paused && <span className="text-amber-400">⏸</span>}
+            </span>
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
@@ -82,7 +89,9 @@ export function ControlHUD() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Collectors Online</span>
-              <span className="text-emerald-400">{nodeCount.toLocaleString()}</span>
+              <span className="text-emerald-400">
+                {deploymentMode ? `${deployedCount.toLocaleString()} / ${nodeCount.toLocaleString()}` : nodeCount.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Orbital Radius</span>
@@ -92,7 +101,48 @@ export function ControlHUD() {
               <span className="text-slate-400">Total Output</span>
               <span className="text-amber-400 font-semibold">{(totalPower / 1000).toFixed(2)} GW</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Energy Stored</span>
+              <span className="text-emerald-400">{(energyStored / 1000).toFixed(1)} GWh</span>
+            </div>
           </div>
+          {deploymentMode && (
+            <div className="mt-3 pt-2 border-t border-cyan-500/20 space-y-2">
+              <div className="text-slate-400 text-[10px] uppercase tracking-wider">Deployment</div>
+              <div className="flex gap-1 flex-wrap">
+                <button
+                  onClick={() => dispatch({ type: 'LAUNCH_SATELLITES', payload: 1 })}
+                  disabled={deployedCount >= nodeCount}
+                  className="px-2 py-1 rounded text-[10px] bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Launch 1
+                </button>
+                <button
+                  onClick={() => dispatch({ type: 'LAUNCH_SATELLITES', payload: 10 })}
+                  disabled={deployedCount >= nodeCount}
+                  className="px-2 py-1 rounded text-[10px] bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Launch 10
+                </button>
+                <button
+                  onClick={() => dispatch({ type: 'LAUNCH_SATELLITES', payload: 100 })}
+                  disabled={deployedCount >= nodeCount}
+                  className="px-2 py-1 rounded text-[10px] bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Launch 100
+                </button>
+                <button
+                  onClick={() => {
+                    if (deployedCount < nodeCount) dispatch({ type: 'LAUNCH_SATELLITES', payload: nodeCount - deployedCount })
+                    dispatch({ type: 'EXIT_DEPLOYMENT_MODE' })
+                  }}
+                  className="px-2 py-1 rounded text-[10px] bg-cyan-500/30 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/40 transition-all"
+                >
+                  Full Fleet
+                </button>
+              </div>
+            </div>
+          )}
           <div className="mt-3 pt-2 border-t border-cyan-500/20 flex gap-2">
             {(['ring', 'shell', 'swarm'] as SwarmStructure[]).map((s) => (
               <button
@@ -109,7 +159,7 @@ export function ControlHUD() {
             ))}
           </div>
           <div className="mt-2 space-y-1">
-            <label className="text-slate-500 text-[10px] block">Density</label>
+            <label className="text-slate-500 text-[10px] block">{deploymentMode ? 'Target Fleet Size' : 'Density'}</label>
             <input
               type="range"
               min={100}
@@ -225,6 +275,19 @@ export function ControlHUD() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      dispatch({ type: 'SET_NODE_STATUS', payload: { nodeId: selectedNodeId!, status: (state.nodeStatus[selectedNodeId!] === 'maintenance' ? 'online' : 'maintenance') } })
+                      logCommand(`Unit ${selectedNodeId}: ${state.nodeStatus[selectedNodeId!] === 'maintenance' ? 'Online' : 'Maintenance mode'}`, 'status')
+                    }}
+                    className={`flex-1 py-1.5 rounded text-[10px] transition-all ${
+                      state.nodeStatus[selectedNodeId!] === 'maintenance'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                        : 'bg-white/5 text-slate-400 border border-white/10 hover:border-amber-500/30'
+                    }`}
+                  >
+                    {state.nodeStatus[selectedNodeId!] === 'maintenance' ? 'Online' : 'Maintenance'}
+                  </button>
                   <button
                     onClick={handleClearPilot}
                     className="flex-1 py-1.5 rounded text-[10px] bg-white/5 text-slate-400 border border-white/10 hover:border-slate-500 hover:text-slate-300 transition-all"

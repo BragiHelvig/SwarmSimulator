@@ -19,11 +19,13 @@ const satelliteGeometry = createSolarSatelliteGeometry()
 export function SwarmNodes() {
   const instancedRef = useRef<THREE.InstancedMesh>(null)
   const { state, dispatch } = useSimulation()
-  const { swarmStructure, nodeCount, baseRadius, timeScale, selectedNodeId, nodeOverrides } = state
+  const { swarmStructure, nodeCount, baseRadius, timeScale, selectedNodeId, nodeOverrides, paused, settings, nodeStatus, deploymentMode, deployedCount } = state
+
+  const effectiveCount = deploymentMode ? deployedCount : nodeCount
 
   const elements = useMemo(() => {
-    return generateSwarmElements(swarmStructure, nodeCount, baseRadius)
-  }, [swarmStructure, nodeCount, baseRadius])
+    return generateSwarmElements(swarmStructure, Math.max(nodeCount, 1), baseRadius).slice(0, effectiveCount)
+  }, [swarmStructure, nodeCount, baseRadius, effectiveCount])
 
   const nodes: SwarmNode[] = useMemo(() => {
     return elements.map((el, i) => ({
@@ -58,6 +60,7 @@ export function SwarmNodes() {
     if (!instancedRef.current) return
 
     const time = performance.now() * 0.001
+    const effectiveTimeScale = paused ? 0 : timeScale
 
     elements.forEach((el, i) => {
       const override = nodeOverrides[i]
@@ -65,10 +68,14 @@ export function SwarmNodes() {
       const burnDelta = override?.burnDelta ?? 0
       const a = Math.max(0.3, el.semiMajorAxis + burnDelta)
       const period = orbitalPeriod(a)
-      const meanAnomaly = (el.meanAnomaly + (time * timeScale * throttle) / period * 2 * Math.PI) % (2 * Math.PI)
+      const meanAnomaly = (el.meanAnomaly + (time * effectiveTimeScale * throttle) / period * 2 * Math.PI) % (2 * Math.PI)
       const orbState = elementsToPosition({ ...el, semiMajorAxis: a }, meanAnomaly, SCALE)
 
       dummy.position.copy(orbState.position)
+
+      if (selectedNodeId === i && settings.showOrbitalTrails) {
+        dispatch({ type: 'UPDATE_ORBITAL_TRAIL', payload: { x: orbState.position.x, y: orbState.position.y, z: orbState.position.z } })
+      }
       dummy.lookAt(zero)
 
       // Pilot attitude override - panel tilt
@@ -85,12 +92,14 @@ export function SwarmNodes() {
 
       instancedRef.current!.setMatrixAt(i, dummy.matrix)
 
-      // Emissive pulse - selected nodes brighter, burn mode adds amber/emerald tint
+      // Emissive pulse - selected nodes brighter, burn mode adds amber/emerald tint, maintenance = dimmed
+      const status = nodeStatus[i]
       const pulse = 0.5 + 0.5 * Math.sin(time * 1.2 + phase)
       let baseColor = selectedNodeId === i ? 0x00f5ff : 0x4488ff
-      if (override?.burnMode === 'raise') baseColor = 0x22dd88
+      if (status === 'maintenance') baseColor = 0x666666
+      else if (override?.burnMode === 'raise') baseColor = 0x22dd88
       else if (override?.burnMode === 'lower') baseColor = 0xff6644
-      const intensity = selectedNodeId === i ? 0.6 + pulse * 0.4 : 0.25 + pulse * 0.15
+      const intensity = status === 'maintenance' ? 0.1 : selectedNodeId === i ? 0.6 + pulse * 0.4 : 0.25 + pulse * 0.15
       const c = new THREE.Color(baseColor)
       c.offsetHSL(0, 0, (intensity - 0.5) * 0.3)
       instancedRef.current!.setColorAt(i, c)
@@ -101,11 +110,12 @@ export function SwarmNodes() {
 
     let totalPower = 0
     elements.forEach((el, i) => {
+      if (nodeStatus[i] === 'maintenance') return
       const period = orbitalPeriod(el.semiMajorAxis)
       const override = nodeOverrides[i]
       const throttle = override ? override.throttle / 100 : 1
-      const meanAnomaly = (el.meanAnomaly + (time * timeScale * throttle) / period * 2 * Math.PI) % (2 * Math.PI)
-      const orbState = elementsToPosition({ ...el, meanAnomaly }, meanAnomaly, SCALE)
+      const meanAnomaly = (el.meanAnomaly + (time * effectiveTimeScale * throttle) / period * 2 * Math.PI) % (2 * Math.PI)
+      const orbState = elementsToPosition(el, meanAnomaly, SCALE)
       totalPower += powerAtDistance(orbState.distance, BASELINE_DISTANCE)
     })
 

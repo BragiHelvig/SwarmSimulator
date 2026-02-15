@@ -3,10 +3,8 @@ import { Canvas } from '@react-three/fiber'
 import { EffectComposer, Bloom, ChromaticAberration, ToneMapping, SMAA, Vignette } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 import * as THREE from 'three'
-import { Star } from './Star'
-import { SwarmNodes } from './SwarmNodes'
-import { SolarSystem } from './SolarSystem'
 import { CameraController } from './CameraController'
+import { SimulationScene } from './SimulationScene'
 
 export function Scene() {
   return (
@@ -26,9 +24,7 @@ export function Scene() {
       <pointLight position={[5, 5, 5]} intensity={0.5} color="#00f5ff" />
 
       <Suspense fallback={null}>
-        <Star />
-        <SolarSystem />
-        <SwarmNodes />
+        <SimulationScene />
       </Suspense>
 
       <CameraController />
